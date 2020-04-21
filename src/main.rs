@@ -40,7 +40,12 @@ pub fn main() {
     central.start_scan().unwrap();
     // instead of waiting, you can use central.on_event to be notified of
     // new devices
-    thread::sleep(Duration::from_secs(10));
+    let mut count = 0;
+    while count < 30 {
+        println!("Count = {}", count);
+        thread::sleep(Duration::from_secs(1));
+        count += 1;
+    }
 
     for p in central.peripherals() {
         match p.discover_characteristics() {
