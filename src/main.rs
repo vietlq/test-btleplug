@@ -1,7 +1,7 @@
 extern crate btleplug;
 extern crate rand;
 
-use btleplug::api::{Central, Peripheral, UUID};
+use btleplug::api::{Central, CentralEvent, EventHandler, Peripheral, UUID};
 #[cfg(target_os = "linux")]
 use btleplug::bluez::{adapter::ConnectedAdapter, manager::Manager};
 #[cfg(target_os = "macos")]
@@ -40,6 +40,7 @@ pub fn main() {
     central.start_scan().unwrap();
     // instead of waiting, you can use central.on_event to be notified of
     // new devices
+    //central.on_event(SimpleEventHandler {});
     let mut count = 0;
     while count < 30 {
         println!("Count = {}", count);
