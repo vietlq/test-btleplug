@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 btleplug = "0.4"
 rand = "0.7"
+async-std = "1.5"

@@ -11,6 +11,11 @@ use btleplug::winrtble::{adapter::Adapter, manager::Manager};
 use rand::{thread_rng, Rng};
 use std::thread;
 use std::time::Duration;
+use async_std::{
+    prelude::{FutureExt, StreamExt},
+    sync::{channel, Receiver},
+    task,
+};
 
 // adapter retrieval works differently depending on your platform right now.
 // API needs to be aligned.
@@ -32,7 +37,6 @@ pub fn main() {
     let manager = Manager::new().unwrap();
 
     // get the first bluetooth adapter
-    //
     // connect to the adapter
     let central = get_central(&manager);
 
@@ -40,7 +44,74 @@ pub fn main() {
     central.start_scan().unwrap();
     // instead of waiting, you can use central.on_event to be notified of
     // new devices
-    //central.on_event(SimpleEventHandler {});
+
+    let (event_sender, event_receiver) = channel(256);
+    // Add ourselves to the central event handler output now, so we don't
+    // have to carry around the Central object. We'll be using this in
+    // connect anyways.
+    let on_event = move |event: CentralEvent| match event {
+        CentralEvent::DeviceDiscovered(bd_addr) => {
+            println!("DeviceDiscovered: {:?}", bd_addr);
+            let s = event_sender.clone();
+            let e = event.clone();
+            task::spawn(async move {
+                s.send(e).await;
+            });
+        }
+        CentralEvent::DeviceLost(bd_addr) => {
+            println!("DeviceLost: {:?}", bd_addr);
+            let s = event_sender.clone();
+            let e = event.clone();
+            task::spawn(async move {
+                s.send(e).await;
+            });
+        }
+        CentralEvent::DeviceConnected(bd_addr) => {
+            println!("DeviceConnected: {:?}", bd_addr);
+            let s = event_sender.clone();
+            let e = event.clone();
+            task::spawn(async move {
+                s.send(e).await;
+            });
+        }
+        CentralEvent::DeviceUpdated(bd_addr) => {
+            println!("DeviceUpdated: {:?}", bd_addr);
+            let s = event_sender.clone();
+            let e = event.clone();
+            task::spawn(async move {
+                s.send(e).await;
+            });
+        }
+        CentralEvent::DeviceDisconnected(bd_addr) => {
+            println!("DeviceDisconnected: {:?}", bd_addr);
+            let s = event_sender.clone();
+            let e = event.clone();
+            task::spawn(async move {
+                s.send(e).await;
+            });
+        }
+    };
+
+    central.on_event(Box::new(on_event));
+
+    let mut count = 0;
+    loop {
+        count += 1;
+        println!("Count = {}", count);
+        thread::sleep(Duration::from_secs(1));
+    }
+
+    /*
+    CentralEvent {
+        DeviceDiscovered(BDAddr),
+        DeviceLost(BDAddr),
+        DeviceUpdated(BDAddr),
+        DeviceConnected(BDAddr),
+        DeviceDisconnected(BDAddr),
+    }
+    */
+
+    /*
     let mut count = 0;
     while count < 30 {
         println!("Count = {}", count);
@@ -55,37 +126,6 @@ pub fn main() {
         };
         println!("p.properties = {:?}", p.properties());
         println!("p.characteristics = {:?}", p.characteristics());
-    }
-
-    /*
-    // find the device we're interested in
-    let light = central
-        .peripherals()
-        .into_iter()
-        .find(|p| {
-            p.properties()
-                .local_name
-                .iter()
-                .any(|name| name.contains("LEDBlue"))
-        })
-        .unwrap();
-
-    // connect to the device
-    light.connect().unwrap();
-
-    // discover characteristics
-    light.discover_characteristics().unwrap();
-
-    // find the characteristic we want
-    let chars = light.characteristics();
-    let cmd_char = chars.iter().find(|c| c.uuid == UUID::B16(0xFFE9)).unwrap();
-
-    // dance party
-    let mut rng = thread_rng();
-    for _ in 0..20 {
-        let color_cmd = vec![0x56, rng.gen(), rng.gen(), rng.gen(), 0x00, 0xF0, 0xAA];
-        light.command(&cmd_char, &color_cmd).unwrap();
-        thread::sleep(Duration::from_millis(200));
     }
     */
 }
