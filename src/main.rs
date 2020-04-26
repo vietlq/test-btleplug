@@ -16,6 +16,7 @@ use async_std::{
     sync::{channel, Receiver},
     task,
 };
+use std::sync::Arc;
 
 // adapter retrieval works differently depending on your platform right now.
 // API needs to be aligned.
@@ -45,6 +46,20 @@ pub fn main() {
     // instead of waiting, you can use central.on_event to be notified of
     // new devices
 
+    let central = Arc::new(central);
+    let central_clone = central.clone();
+
+    // https://stackoverflow.com/questions/1061005/calling-objective-c-method-from-c-member-function
+    // https://www.transpire.com/insights/blog/writing-objective-c-wrapper/
+    // https://nachtimwald.com/2015/12/18/interop-objective-c-objects-in-c-using-arc/
+    // https://forum.juce.com/t/mixing-objective-c-c-and-objective-c-copied-article/15807
+    // #include <objc/objc-runtime.h>
+    // https://www.sitepoint.com/using-c-and-c-code-in-an-android-app-with-the-ndk/
+    // https://www.sitepoint.com/using-c-and-c-in-an-ios-app-with-objective-c/
+    // https://hyperpolyglot.org/cpp
+    // https://github.com/Moret84/rs-mijiabt/blob/master/src/btleplug_ble_repo.rs
+    // https://github.com/buttplugio/buttplug-rs/blob/master/buttplug/src/server/comm_managers/btleplug/btleplug_internal.rs#L62
+
     let (event_sender, event_receiver) = channel(256);
     // Add ourselves to the central event handler output now, so we don't
     // have to carry around the Central object. We'll be using this in
@@ -52,6 +67,16 @@ pub fn main() {
     let on_event = move |event: CentralEvent| match event {
         CentralEvent::DeviceDiscovered(bd_addr) => {
             println!("DeviceDiscovered: {:?}", bd_addr);
+            /*
+            match &central_clone.peripheral(bd_addr) {
+                Some(p) => {
+                    println!("Resolved the address {:?} to peripheral {:?}", bd_addr, p);
+                },
+                None => {
+                    println!("Could not resolve the address {:?}", bd_addr);
+                }
+            }
+            */
             let s = event_sender.clone();
             let e = event.clone();
             task::spawn(async move {
